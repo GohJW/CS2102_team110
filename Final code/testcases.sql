@@ -366,5 +366,298 @@ VALUES
     --negative test case
     (2, '2023-03-27');
 END;
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- TESTCASE TRIGGER 13
+-- SETUP
+INSERT INTO customers (id, name, gender, mobile) 
+VALUES (1, 'John Doe', 'male', '1234567890');
+
+INSERT INTO employees (id, name, gender, dob, title, salary) 
+VALUES (1, 'Jane Smith', 'female', '1990-01-01', 'Manager', 50000);
+
+INSERT INTO delivery_staff (id) 
+VALUES (1);
+
+INSERT INTO facilities (id, address, postal) 
+VALUES (1, '123 Main St', '12345');
+
+BEGIN TRANSACTION;
+INSERT INTO delivery_requests (id, customer_id, evaluater_id, status, pickup_addr, pickup_postal, recipient_name, recipient_addr, recipient_postal, submission_time, pickup_date, num_days_needed, price) 
+VALUES (1, 1, 1, 'submitted', '123 Main St', '12345', 'Janet Smith', '456 Oak St', '67890', '2021-01-01 00:00:00', '2021-01-02', 3, 50.00); 
+
+INSERT INTO packages (request_id, package_id, reported_height, reported_width, reported_depth, reported_weight, content, estimated_value) 
+VALUES (1, 1, 10.0, 10.0, 10.0, 10.0, 'books', 20.00);
+END;
+
+INSERT INTO accepted_requests (id, card_number, payment_time, monitor_id) 
+VALUES (1, '1234567890123456', '2021-01-02 00:00:00', 1); 
+
+INSERT INTO legs (request_id, leg_id, handler_id, start_time, end_time, destination_facility) 
+VALUES (1, 1, 1, '2021-01-03 00:00:00', '2021-01-04 00:00:00', 1);
+
+INSERT INTO cancelled_requests
+VALUES (1, '2021-01-04 12:00:00');
+
+INSERT INTO cancelled_or_unsuccessful_requests
+VALUES (1);
+
+-- For the positive test case, 
+-- we can insert three unsuccessful return deliveries with the same request_id:
+INSERT INTO return_legs (request_id, leg_id, handler_id, start_time, source_facility, end_time) 
+VALUES (1, 1, 1, '2021-01-05 00:00:00', 1, '2021-01-06 00:00:00');
+
+INSERT INTO unsuccessful_return_deliveries (request_id, leg_id, reason, attempt_time) 
+VALUES (1, 1, 'Wrong address', '2021-01-05 12:00:00');
+
+INSERT INTO return_legs (request_id, leg_id, handler_id, start_time, source_facility, end_time) 
+VALUES (1, 2, 1, '2021-01-07 00:00:00', 1, '2021-01-08 00:00:00');
+
+INSERT INTO unsuccessful_return_deliveries (request_id, leg_id, reason, attempt_time) 
+VALUES (1, 2, 'Recipient not available', '2021-01-07 12:00:00');
+
+INSERT INTO return_legs (request_id, leg_id, handler_id, start_time, source_facility, end_time) 
+VALUES (1, 3, 1, '2021-01-09 00:00:00', 1, '2021-01-10 00:00:00');
+
+INSERT INTO unsuccessful_return_deliveries (request_id, leg_id, reason, attempt_time) 
+VALUES (1, 3, 'Refused delivery', '2021-01-09 12:00:00');
+
+-- For the negative test case, 
+-- we can try to insert a fourth unsuccessful return delivery with the same request_id:
+INSERT INTO return_legs (request_id, leg_id, handler_id, start_time, source_facility, end_time) 
+VALUES (1, 4, 1, '2021-01-11 00:00:00', 1, '2021-01-12 00:00:00');
+
+INSERT INTO unsuccessful_return_deliveries (request_id, leg_id, reason, attempt_time) 
+VALUES (1, 4, 'Gone bruh', '2021-01-10 12:00:00');
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- TESTCASE TRIGGER 14
+-- SETUP
+BEGIN TRANSACTION;
+-- Inserting customers data 
+INSERT INTO customers (id, name, gender, mobile) 
+VALUES
+  (1, 'John', 'male', '98765432'),
+  (2, 'Sarah', 'female', '91234567');
+
+-- Inserting employees data 
+INSERT INTO employees (id, name, gender, dob, title, salary) 
+VALUES 
+  (1, 'Bob', 'male', '1980-01-01', 'Manager', 5000),
+  (2, 'Alice', 'female', '1990-02-02', 'Clerk', 3000),
+  (3, 'Mark', 'male', '1985-03-03', 'Delivery Staff', 2000);
+
+-- Inserting delivery_staff data 
+INSERT INTO delivery_staff (id) 
+VALUES (3);
+
+-- Inserting facilities data 
+INSERT INTO facilities (id, address, postal) 
+VALUES 
+  (1, '123 Main St', '123456'),
+  (2, '456 Broad St', '789012');
+
+-- Inserting delivery_requests data 
+INSERT INTO delivery_requests (id, customer_id, evaluater_id, status, pickup_addr, pickup_postal, recipient_name, recipient_addr, recipient_postal, submission_time, pickup_date, num_days_needed, price) 
+VALUES 
+  (1, 1, 2, 'submitted', '1 Orchard Rd', '345678', 'Mary', '2 Broadway', '456789', '2021-01-01 00:00:00', '2021-01-02', 1, 10),
+  (2, 2, 2, 'submitted', '3 Maple St', '901234', 'Peter', '4 Elm St', '567890', '2021-02-01 00:00:00', '2021-02-02', 2, 20);
+
+-- Inserting packages data 
+INSERT INTO packages (request_id, package_id, reported_height, reported_width, reported_depth, reported_weight, content, estimated_value, actual_height, actual_width, actual_depth, actual_weight)
+VALUES 
+  (1, 1, 10, 10, 10, 5, 'Book', 50, NULL, NULL, NULL, NULL),
+  (2, 1, 20, 20, 20, 10, 'Frying Pan', 100, NULL, NULL, NULL, NULL);
+
+-- Inserting accepted_requests data 
+INSERT INTO accepted_requests (id, card_number, payment_time, monitor_id) 
+VALUES 
+  (1, '1234567890', '2021-01-01 00:00:00', 3),
+  (2, '0987654321', '2021-02-01 00:00:00', 3);
+
+-- Inserting legs data 
+INSERT INTO legs (request_id, leg_id, handler_id, start_time, end_time, destination_facility) 
+VALUES 
+  (1, 1, 3, '2021-01-02 00:00:00', '2021-01-02 12:00:00', 1),
+  (2, 1, 3, '2021-02-02 00:00:00', '2021-02-02 12:00:00', 2);
+
+-- Cancel requests
+INSERT INTO cancelled_requests
+VALUES 
+  (1, '2021-01-03 12:00:00'),
+  (2, '2021-02-03 12:00:00');
+
+INSERT INTO cancelled_or_unsuccessful_requests
+VALUES 
+  (1), (2);
+
+END;
+
+-- Positive test case
+-- Inserting unsuccessful_return_deliveries data (positive test case)
+INSERT INTO return_legs (request_id, leg_id, handler_id, start_time, source_facility, end_time) 
+VALUES (1, 1, 3, '2021-01-04 00:00:00', 1, '2021-01-05 00:00:00');
+
+INSERT INTO unsuccessful_return_deliveries (request_id, leg_id, reason, attempt_time) 
+VALUES (1, 1, 'Wrong address', '2021-01-04 12:00:00');
+
+-- Negative test case (before return leg start)
+BEGIN TRANSACTION;
+-- Inserting unsuccessful_return_deliveries data (negative test case)
+INSERT INTO return_legs (request_id, leg_id, handler_id, start_time, source_facility, end_time) 
+VALUES (1, 2, 3, '2021-01-06 00:00:00', 1, '2021-01-07 00:00:00');
+
+INSERT INTO unsuccessful_return_deliveries (request_id, leg_id, reason, attempt_time) 
+VALUES (1, 2, 'Recipient not available', '2021-01-05 12:00:00');
+END;
+
+-- Negative test case (same time as return leg start)
+BEGIN TRANSACTION;
+-- Inserting unsuccessful_return_deliveries data (negative test case)
+INSERT INTO return_legs (request_id, leg_id, handler_id, start_time, source_facility, end_time) 
+VALUES (2, 1, 3, '2021-02-04 00:00:00', 1, '2021-01-05 00:00:00');
+
+INSERT INTO unsuccessful_return_deliveries (request_id, leg_id, reason, attempt_time) 
+VALUES (2, 1, 'Delivery refused', '2021-01-04 00:00:00');
+END;
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- TESTCASE PROCEDURE 1
+-- SETUP
+BEGIN TRANSACTION;
+-- Inserting customers data 
+INSERT INTO customers (id, name, gender, mobile) 
+VALUES
+  (1, 'John', 'male', '98765432'),
+  (2, 'Sarah', 'female', '91234567');
+
+-- Inserting employees data 
+INSERT INTO employees (id, name, gender, dob, title, salary) 
+VALUES 
+  (1, 'Bob', 'male', '1980-01-01', 'Manager', 5000),
+  (2, 'Alice', 'female', '1990-02-02', 'Clerk', 3000),
+  (3, 'Mark', 'male', '1985-03-03', 'Delivery Staff', 2000);
+
+END;
+
+-- Test case 1: Submit a delivery request with a single package 
+CALL submit_request(1, 1, '1 Main St', '123456', 'Linda', '2 Broad St', '789012', '2022-01-01 10:00:00', 1, ARRAY[10], ARRAY[5], ARRAY[15], ARRAY[20], ARRAY['Book'], ARRAY[50]);
+
+SELECT * FROM delivery_requests;
+SELECT * FROM packages;
+
+-- Test case 2: Submit a delivery request with multiple packages 
+CALL submit_request(2, 2, '3 Main St', '345678', 'Mike', '4 Broad St', '901234', '2022-02-02 14:00:00', 2, ARRAY[20, 30], ARRAY[10, 12], ARRAY[8, 10], ARRAY[25, 30], ARRAY['Shoes', 'Clothes'], ARRAY[120, 80]);
+
+SELECT * FROM delivery_requests;
+SELECT * FROM packages;
+
+-- Test case 3: Submit a delivery request with no packages (negative testcase)
+CALL submit_request(1, 2, '5 Main St', '567890', 'Tom', '6 Broad St', '345678', '2022-03-03 16:00:00', 0, '{}', '{}', '{}', '{}', '{}', '{}');
+
+SELECT * FROM delivery_requests;
+SELECT * FROM packages;
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- TESTCASE PROCEDURE 2
+-- SETUP
+BEGIN TRANSACTION;
+-- Inserting customers data 
+INSERT INTO customers (id, name, gender, mobile) 
+VALUES
+  (1, 'John', 'male', '98765432'),
+  (2, 'Sarah', 'female', '91234567');
+
+-- Inserting employees data 
+INSERT INTO employees (id, name, gender, dob, title, salary) 
+VALUES 
+  (1, 'Bob', 'male', '1980-01-01', 'Manager', 5000),
+  (2, 'Alice', 'female', '1990-02-02', 'Clerk', 3000),
+  (3, 'Mark', 'male', '1985-03-03', 'Delivery Staff', 2000);
+
+-- Inserting delivery_staff data 
+INSERT INTO delivery_staff (id) 
+VALUES (3);
+
+-- Inserting facilities data 
+INSERT INTO facilities (id, address, postal) 
+VALUES 
+  (1, '123 Main St', '123456'),
+  (2, '456 Broad St', '789012');
+
+-- Inserting delivery requests and packages
+CALL submit_request(1, 1, '1 Main St', '123456', 'Linda', '2 Broad St', '789012', '2021-01-01 10:00:00', 1, ARRAY[10], ARRAY[5], ARRAY[15], ARRAY[20], ARRAY['Book'], ARRAY[50]);
+
+CALL submit_request(2, 2, '3 Main St', '345678', 'Mike', '4 Broad St', '901234', '2021-02-01 14:00:00', 2, ARRAY[20, 30], ARRAY[10, 12], ARRAY[8, 10], ARRAY[25, 30], ARRAY['Shoes', 'Clothes'], ARRAY[120, 80]);
+END;
+
+-- Resubmitted delivery request details
+CALL resubmit_request(2, 1, '2021-02-03 00:00:00', ARRAY[69,69], ARRAY[69,69], ARRAY[420,420], ARRAY[420,420]);
+
+-- Verify the new delivery request details
+SELECT * FROM delivery_requests;
+
+-- Verify the new package details
+SELECT * FROM packages;
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- TESTCASE PROCEDURE 3
+-- SETUP
+BEGIN TRANSACTION;
+-- Inserting customers data 
+INSERT INTO customers (id, name, gender, mobile) 
+VALUES
+  (1, 'John', 'male', '98765432'),
+  (2, 'Sarah', 'female', '91234567');
+
+-- Inserting employees data 
+INSERT INTO employees (id, name, gender, dob, title, salary) 
+VALUES 
+  (1, 'Bob', 'male', '1980-01-01', 'Manager', 5000),
+  (2, 'Alice', 'female', '1990-02-02', 'Clerk', 3000),
+  (3, 'Mark', 'male', '1985-03-03', 'Delivery Staff', 2000);
+
+-- Inserting delivery_staff data 
+INSERT INTO delivery_staff (id) 
+VALUES (3);
+
+-- Inserting facilities data 
+INSERT INTO facilities (id, address, postal) 
+VALUES 
+  (1, '123 Main St', '123456'),
+  (2, '456 Broad St', '789012');
+
+-- Inserting delivery requests and packages
+CALL submit_request(1, 1, '1 Main St', '123456', 'Linda', '2 Broad St', '789012', '2021-01-01 10:00:00', 1, ARRAY[10], ARRAY[5], ARRAY[15], ARRAY[20], ARRAY['Book'], ARRAY[50]);
+
+CALL submit_request(2, 2, '3 Main St', '345678', 'Mike', '4 Broad St', '901234', '2021-02-01 14:00:00', 2, ARRAY[20, 30], ARRAY[10, 12], ARRAY[8, 10], ARRAY[25, 30], ARRAY['Shoes', 'Clothes'], ARRAY[120, 80]);
+
+-- Inserting accepted_requests data 
+INSERT INTO accepted_requests (id, card_number, payment_time, monitor_id) 
+VALUES 
+  (1, '1234567890', '2021-01-02 00:00:00', 3),
+  (2, '0987654321', '2021-02-02 00:00:00', 3);
+
+END;
+
+-- Positive testcases
+CALL insert_leg(1, 3, '2021-01-02 12:00:00', 1);
+CALL insert_leg(2, 3, '2021-02-02 12:00:00', 2);
+
+-- Verify the new delivery request details
+SELECT * FROM delivery_requests;
+
+-- Verify the new package details
+SELECT * FROM packages;
+
+-- Verify the new leg details
+SELECT * FROM legs;
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
