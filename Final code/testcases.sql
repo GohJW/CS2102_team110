@@ -333,7 +333,7 @@ END;
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- TEST FOR TRIGGER 6 CANCELLED REQUESTS RELATED
--- dbfiddle: https://dbfiddle.uk/HOAk33ca
+-- dbfiddle: https://dbfiddle.uk/7LpnjFrI
 
 BEGIN TRANSACTION;
 --insert the delivery request
@@ -364,8 +364,14 @@ END;
 
 INSERT INTO cancelled_requests(id, cancel_time)
 VALUES
-    --negative test case
+    --negative test case before submission
     (2, '2023-03-27');
+END;
+
+INSERT INTO cancelled_requests(id, cancel_time)
+VALUES
+    --negative test case same as submission
+    (2, '2023-04-01');
 END;
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -730,15 +736,15 @@ END;
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- TEST FOR TRIGGER 8 RETURN LEGS RELATED
--- dbfiddle: https://dbfiddle.uk/c9JNe7hu
+-- dbfiddle: https://dbfiddle.uk/ShknBmVX
 
 BEGIN TRANSACTION;
 --insert the delivery requests
 INSERT INTO delivery_requests (id, customer_id, evaluater_id, status, pickup_addr, pickup_postal, recipient_name, recipient_addr, recipient_postal, submission_time, pickup_date, num_days_needed, price)
 VALUES
-    (1, 1, 1, 'submitted', '10 Main Street', '123456', 'Mary Smith', '5 Second Road', '234567', NOW(), NOW() + interval '1 hour', 3, 100),
+    (1, 1, 1, 'submitted', '10 Main Street', '123456', 'Mary Smith', '5 Second Road', '234567', '2023-02-01 10:31:00', '2023-03-01 10:31:00', 3, 100),
     (2, 1, 1, 'submitted', '10 Main Street', '123456', 'Mary Smith', '5 Second Road', '234567', '2023-04-01', '2023-04-02', 3, 100),
-    (3, 1, 1, 'submitted', '10 Main Street', '123456', 'Mary Smith', '5 Second Road', '234567', NOW(), NOW() + interval '1 hour', 3, 100);
+    (3, 1, 1, 'submitted', '10 Main Street', '123456', 'Mary Smith', '5 Second Road', '234567', '2023-03-01 12:30:00', '2023-03-01 12:30:00', 3, 100);
 
 
 --insert the packages
@@ -752,47 +758,64 @@ END;
 --accept the request
 INSERT INTO accepted_requests(id, card_number, payment_time, monitor_id)
 VALUES 
-    (1, '1234567890123456', NOW() + interval '2 hours', 1),
+    (1, '1234567890123456', '2023-03-01 11:30:00', 1),
     (2, '1234567890123456', '2023-04-01 10:30:00', 1),
-    (3, '1234567890123456', NOW() + interval '1 hour', 1);
+    (3, '1234567890123456', '2023-03-01 12:31:00', 1);
 
 
 INSERT INTO cancelled_requests(id, cancel_time) --one request is cancelled
 VALUES
-    (1, NOW() + interval '1 hour'),
-    (3, NOW() + interval '2 hours');
+    (1, '2023-03-01 11:25:00'),
+    (3, '2023-03-01 16:30:00');
 
 INSERT INTO cancelled_or_unsuccessful_requests(id) 
 -- (1) is cancelled (2) is unsuccessful (return_legs request_id references cancelled_or_unsuccessful_requests table)
 VALUES
-    (1),(2), (3);
+    (1),(2),(3);
 
 INSERT INTO legs(request_id, leg_id, handler_id, start_time, end_time, destination_facility)
 VALUES
 -- first delivery request has a first leg, the second does not
-    (1, 1, 1, NOW() + interval '1 hour', NOW() + interval '3 hours', 1),
-    (3, 1, 1, NOW() + interval '1 hour', NOW() + interval '1 hour 15 minutes', 1);    
+    (1, 1, 1, '2023-03-01 11:31:00', '2023-03-01 11:32:00', 1),
+    (3, 1, 1, '2023-03-01 12:32:00', '2023-03-01 12:33:00', 1);    
 END;
  
-
+ 
 INSERT INTO return_legs(request_id, leg_id, handler_id, start_time, source_facility, end_time)
 VALUES
     -- test for (i), no existing first leg should not pass
-    (2, 1, 1, '2023-03-01 10:31:00', '2023-03-01 10:31:00', 1);
+    (2, 1, 1, '2023-03-01 10:31:00', 1, '2023-03-01 10:31:00');
 END;
 
 INSERT INTO return_legs(request_id, leg_id, handler_id, start_time, source_facility, end_time)
 VALUES
     --test for (ii), return leg start time before end time of last leg
-    (1, 1, 1, NOW() + interval '2 hours', 1, NOW() + interval '3 hours');
+    (1, 1, 1, '2023-03-01 10:30:00', 1, '2023-03-01 11:30:00');
+END;
+
+INSERT INTO return_legs(request_id, leg_id, handler_id, start_time, source_facility, end_time)
+VALUES
+    --test for (ii), return leg start time same as end time of last leg
+    (1, 1, 1, '2023-03-01 11:32:00', 1, '2023-03-01 11:33:00');
 END;
 
 INSERT INTO return_legs(request_id, leg_id, handler_id, start_time, source_facility, end_time)
 VALUES
     --test for return leg start time before cancel request
-    (3, 1, 1, NOW() + interval '1 hour 30 minutes', 1, NOW() + interval '3 hours');
+    (3, 1, 1, '2023-03-01 12:34:00', 1, '2023-03-01 12:35:00');
 END;
 
+INSERT INTO return_legs(request_id, leg_id, handler_id, start_time, source_facility, end_time)
+VALUES
+    --test for return leg start time same as cancel request
+    (3, 1, 1, '2023-03-01 16:30:00', 1, '2023-03-01 16:31:00');
+END;
+
+INSERT INTO return_legs(request_id, leg_id, handler_id, start_time, source_facility, end_time)
+VALUES
+    --positive test case
+    (3, 1, 1, '2023-03-01 16:31:00', 1, '2023-03-01 16:32:00');
+END;
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
