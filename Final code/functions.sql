@@ -5,16 +5,16 @@ DECLARE
     last_return_leg_id INTEGER;
 BEGIN
     -- return nothing if no legs at all
-    --IF (SELECT COUNT(*) FROM legs l0 WHERE l0.request_id = $1) = 0 THEN
-      --  RETURN NULL;
-    -- END IF
+    IF (SELECT COUNT(*) FROM legs WHERE request_id = $1) = 0 THEN
+        RETURN NULL
+    END IF
 
     -- ADD the legs
     RETURN QUERY (
-        SELECT t.source_addr,
-               t.destination_addr,
-               t.start_time,
-               t.end_time
+        SELECT source_addr,
+               destination_addr,
+               start_time,
+               end_time
         FROM (
             -- Get info for first leg
             SELECT dr.pickup_addr AS source_addr,
@@ -43,21 +43,21 @@ BEGIN
                 f2.address AS destination_addr,
                 rl1.start_time AS start_time,
                 rl1.end_time AS end_time
-            FROM (return_legs rl1 JOIN facilities f1 ON rl1.source_facility = f1.id)
-                JOIN (return_legs rl2 JOIN facilities f2 ON rl2.source_facility = f2.id)
+            FROM (return_legs rl1 JOIN facilities f1 ON rl1.destination_facility = f1.id)
+                JOIN (return_legs rl2 JOIN facilities f2 ON rl2.destination_facility = f2.id)
                 ON rl1.leg_id = rl2.leg_id - 1
                     AND rl1.request_id = $1
                     AND rl2.request_id = $1
-        ) AS t
+        )
         ORDER BY start_time ASC
     );
 
     -- Get the last return leg id
     SELECT COUNT(*) INTO last_return_leg_id
-    FROM return_legs rll
-    WHERE rll.request_id = $1;
+    FROM return_legs
+    WHERE request_id = $1
 
-    IF EXISTS (SELECT 1 FROM unsuccessful_return_deliveries urd WHERE urd.request_id = $1 AND urd.leg_id = last_return_leg_id) THEN
+    IF EXISTS (SELECT 1 FROM unsuccessful_return_deliveries WHERE request_id = $1 AND leg_id = last_return_leg_id) THEN
         RETURN QUERY(
             -- didnt go back home aka not successful
             SELECT f.address AS source_addr,
@@ -126,6 +126,13 @@ BEGIN
             FROM return_legs rl1 JOIN return_legs rl2 
                 ON rl1.leg_id = rl2.leg_id - 1
                     AND rl1.request_id = rl2.request_id
+            UNION ALL
+            -- Get the last return_leg if it is not successful
+            SELECT rl3.source_facility AS source,
+                rl3.source_facility AS dest
+            FROM return_legs rl3
+            WHERE rl3.leg_id = (SELECT COUNT(*) FROM return_legs WHERE request_id = rl3.request_id)
+            AND EXISTS(SELECT 1 FROM unsuccessful_return_deliveries WHERE request_id = rl3.request_id AND leg_id = rl3.leg_id)
         ) c
         GROUP BY c.source, c.dest
         ORDER BY COUNT(*) DESC, (source, dest) ASC
