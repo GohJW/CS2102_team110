@@ -1,8 +1,9 @@
-/* 1 */
+-- Function 1
 CREATE OR REPLACE FUNCTION view_trajectory(request_id INTEGER)
 RETURNS TABLE(source_addr TEXT, destination_addr TEXT, start_time TIMESTAMP, end_time TIMESTAMP) AS $$
 DECLARE
     last_return_leg_id INTEGER;
+    last_leg_id INTEGER;
 BEGIN
     -- return nothing if no legs at all
     --IF (SELECT COUNT(*) FROM legs l0 WHERE l0.request_id = $1) = 0 THEN
@@ -36,6 +37,18 @@ BEGIN
                 ON l1.leg_id = l2.leg_id - 1
                     AND l1.request_id = $1 
                     AND l2.request_id = $1
+            UNION
+            -- Get info for the last leg if delivered
+            SELECT fll1.address AS source_addr,
+                drl.recipient_addr AS destination_addr,
+                ll2.start_time AS start_time,
+                ll2.end_time AS end_time
+            FROM (legs ll1 JOIN facilities fll1 ON ll1.destination_facility = fll1.id)
+                JOIN (legs ll2 JOIN delivery_requests drl ON ll2.request_id = drl.id)
+                ON ll1.leg_id = ll2.leg_id - 1
+                    AND ll1.request_id = $1
+                    AND ll2.request_id = $1
+                    AND ll2.destination_facility IS NULL
             UNION
             -- Add the return legs
             -- Get info for first and intermediate return legs (excludes last return leg)
@@ -71,7 +84,7 @@ BEGIN
         RETURN QUERY( 
             -- Went back home
             SELECT f.address AS source_addr,
-                   dr.recipient_addr AS destination_addr,
+                   dr.pickup_addr AS destination_addr,
                    rl.start_time AS start_time,
                    rl.end_time AS end_time
             FROM return_legs rl JOIN delivery_requests dr ON rl.request_id = dr.id
