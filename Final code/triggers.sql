@@ -287,7 +287,7 @@ FOR EACH ROW EXECUTE FUNCTION first_return_leg_not_exist_or_after_func();
 CREATE OR REPLACE FUNCTION check_three_unsuccessful_return_deliveries()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF (SELECT COUNT(*) FROM return_legs WHERE request_id = NEW.request_id) = 3 THEN
+    IF (SELECT COUNT(*) FROM unsuccessful_return_deliveries WHERE request_id = NEW.request_id) = 3 THEN
         RAISE EXCEPTION 'For each delivery request, there can be at most three unsuccessful_return_deliveries.';
     END IF;
     RETURN NEW;
