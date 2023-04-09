@@ -134,7 +134,7 @@ BEGIN
 	IF (count = 0) THEN 
 		IF (NEW.start_time <= submission_time) THEN
 			RAISE EXCEPTION 'Start time of the first leg should be after the submission_time of the its delivery request';
-		ELSIF (last_unsuccessful_pickup_time IS NOT NULL AND NEW.start_time < last_unsuccessful_pickup_time) THEN
+		ELSIF (last_unsuccessful_pickup_time IS NOT NULL AND NEW.start_time <= last_unsuccessful_pickup_time) THEN
 			RAISE EXCEPTION 'Start time of the first leg should be after the timestamp of the last unsuccessful pickup';
 		END IF;
 	END IF;
@@ -162,7 +162,7 @@ BEGIN
 		AND leg_id = count
 		LIMIT 1;
 
-		IF (previous_end_time IS NULL OR NEW.start_time <= previous_end_time) THEN
+		IF (previous_end_time IS NULL OR NEW.start_time < previous_end_time) THEN
 			RAISE EXCEPTION 'New leg cannot be inserted if its start_time is before the end_time of the previous leg';
 		END IF;
 	END IF;
