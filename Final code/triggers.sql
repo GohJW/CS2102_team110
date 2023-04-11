@@ -265,7 +265,7 @@ BEGIN
     END IF;
     SELECT end_time INTO last_leg_end_time
     FROM legs
-    WHERE request_id = NEW.request_id AND exist = NEW.leg_id; --exist = NEW.leg_id selects the latest leg
+    WHERE request_id = NEW.request_id AND  existing_leg_count = NEW.leg_id; -- existing_leg_count = NEW.leg_id selects the latest leg
     IF(last_leg_end_time >= NEW.start_time) THEN
         RAISE EXCEPTION 'Return leg start time is before last leg end time';
     END IF;
