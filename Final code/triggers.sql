@@ -214,12 +214,12 @@ EXECUTE FUNCTION check_three_unsuccessful_deliveries();
 /* 6 */
 CREATE OR REPLACE FUNCTION cancelled_request_after_submission_func() RETURNS TRIGGER AS $$
 DECLARE
-    submission TIMESTAMP;
+    delivery_request_submission_time TIMESTAMP;
 BEGIN
-    SELECT submission_time into submission
+    SELECT submission_time into delivery_request_submission_time
     FROM delivery_requests
     WHERE id = NEW.id;
-    IF(submission >= NEW.cancel_time) THEN
+    IF(delivery_request_submission_time >= NEW.cancel_time) THEN
         RAISE EXCEPTION 'Cancel time of a cancelled request should be after the submission_time of the corresponding delivery request';
     END IF;
     RETURN NEW;
@@ -253,14 +253,14 @@ EXECUTE FUNCTION check_consecutive_return_leg_id();
 /* 8 */
 CREATE OR REPLACE FUNCTION first_return_leg_not_exist_or_after_func() RETURNS TRIGGER AS $$
 DECLARE
-    exist NUMERIC; --(i)The number of legs/leg_id of the last leg
+    existing_leg_count NUMERIC; --(i)The number of legs/leg_id of the last leg
     last_leg_end_time TIMESTAMP; --(ii) Last leg end time
-    cancel TIMESTAMP; --(ii) Canclled time of request (if any)
+    delivery_request_cancellation_time TIMESTAMP; --(ii) Canclled time of request (if any)
 BEGIN
-    SELECT COUNT(*) INTO exist
+    SELECT COUNT(*) INTO existing_leg_count
     FROM legs
     WHERE request_id = NEW.request_id;
-    IF(exist = 0) THEN
+    IF(existing_leg_count = 0) THEN
         RAISE EXCEPTION 'Delivery request has no existing legs';
     END IF;
     SELECT end_time INTO last_leg_end_time
@@ -269,10 +269,10 @@ BEGIN
     IF(last_leg_end_time >= NEW.start_time) THEN
         RAISE EXCEPTION 'Return leg start time is before last leg end time';
     END IF;
-    SELECT cancel_time INTO cancel --May be null if no cancel request is made
+    SELECT cancel_time INTO delivery_request_cancellation_time --May be null if no cancel request is made
     FROM cancelled_requests
     WHERE id = NEW.request_id;
-    IF(cancel >= NEW.start_time) THEN
+    IF(delivery_request_cancellation_time >= NEW.start_time) THEN
         RAISE EXCEPTION 'Return leg start time is before cancelled time';
     END IF;
     RETURN NEW;
