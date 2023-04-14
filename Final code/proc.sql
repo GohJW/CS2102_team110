@@ -600,6 +600,9 @@ BEGIN
             UNION ALL
             SELECT handler_id
             FROM return_legs
+	    UNION ALL
+            SELECT id
+            FROM delivery_staff
         ) a
         GROUP BY a.handler_id
         ORDER BY COUNT(*) DESC, employee_id ASC
