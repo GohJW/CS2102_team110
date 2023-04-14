@@ -1,4 +1,5 @@
 /** Triggers **/
+/* Delivery_requests related */
 /* 1 */
 CREATE OR REPLACE FUNCTION check_package_exists()
 RETURNS TRIGGER AS $$
@@ -19,6 +20,7 @@ DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION check_package_exists();
 
+/* Package related */
 /* 2 */
 CREATE OR REPLACE FUNCTION check_consecutive_package_id() RETURNS TRIGGER AS $$
 DECLARE
@@ -37,7 +39,8 @@ BEFORE INSERT ON packages
 FOR EACH ROW
 EXECUTE FUNCTION check_consecutive_package_id();
 
-/* 3  check if we should forcefully change the id or dun allow insertion*/
+/* Unsuccessful_pickups related */
+/* 3 */
 CREATE OR REPLACE FUNCTION check_consecutive_pickup_id() RETURNS TRIGGER AS $$
 DECLARE
     max_pickup_id INTEGER;
@@ -92,7 +95,7 @@ BEFORE INSERT ON unsuccessful_pickups
 FOR EACH ROW
 EXECUTE FUNCTION check_unsuccessful_pickup_timestamp();
 
-/* Legs related check same as other consecutive id question*/
+/* Legs related*/
 /* 1 */
 CREATE OR REPLACE FUNCTION check_consecutive_leg_id() RETURNS TRIGGER AS $$
 DECLARE
@@ -175,8 +178,8 @@ CREATE TRIGGER enforce_leg_time_trigger
 BEFORE INSERT ON legs
 FOR EACH ROW EXECUTE FUNCTION enforce_leg_time_func();
 
-
-/*4 Check */
+/* Unsuccessful_deliveries related */
+/* 4 */
 
 CREATE OR REPLACE FUNCTION unsuccessful_deliveries_timestamp_after_func() RETURNS TRIGGER AS $$
 DECLARE
@@ -212,6 +215,7 @@ BEFORE INSERT ON legs
 FOR EACH ROW
 EXECUTE FUNCTION check_three_unsuccessful_deliveries();
 
+/* Cancelled_requests related */
 /* 6 */
 CREATE OR REPLACE FUNCTION cancelled_request_after_submission_func() RETURNS TRIGGER AS $$
 DECLARE
@@ -300,6 +304,7 @@ BEFORE INSERT ON return_legs
 FOR EACH ROW
 EXECUTE FUNCTION check_three_unsuccessful_return_deliveries();
 
+/* Unsuccessful_return_deliveries related */
 /* 10 */
 CREATE OR REPLACE FUNCTION unsuccessful_return_deliveries_after_func() RETURNS TRIGGER AS $$
 DECLARE
@@ -319,7 +324,10 @@ CREATE TRIGGER unsuccessful_return_deliveries_after_trigger
 BEFORE INSERT ON unsuccessful_return_deliveries
 FOR EACH ROW EXECUTE FUNCTION unsuccessful_return_deliveries_after_func();
 
+
 /** Procedures **/
+
+-- Procedure 1
 CREATE OR REPLACE PROCEDURE submit_request(
     customer_id INTEGER, 
     evaluator_id INTEGER, 
@@ -403,6 +411,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Procedure 2
 CREATE OR REPLACE PROCEDURE resubmit_request(
     request_id INTEGER,
     evaluator_id INTEGER,
@@ -455,6 +464,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Procedure 3
 CREATE OR REPLACE PROCEDURE insert_leg(
     request_id INTEGER,
     handler_id INTEGER,
@@ -475,7 +485,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
 /** Functions **/
+
 -- Function 1
 CREATE OR REPLACE FUNCTION view_trajectory(request_id INTEGER)
 RETURNS TABLE(source_addr TEXT, destination_addr TEXT, start_time TIMESTAMP, end_time TIMESTAMP) AS $$
@@ -573,7 +585,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-/* 2 */
+-- Function 2
 CREATE OR REPLACE FUNCTION get_top_delivery_persons (k INTEGER)
 RETURNS TABLE (employee_id INTEGER) AS $$
 BEGIN
@@ -596,7 +608,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-/* 3 */
+-- Function 3
 CREATE OR REPLACE FUNCTION get_top_connections(k  INTEGER)
 RETURNS TABLE(source_facility_id INTEGER, destination_facility_id INTEGER) AS $$
 BEGIN
